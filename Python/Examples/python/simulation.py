@@ -484,6 +484,7 @@ def addFatras(
     field: acts.MagneticFieldProvider,
     rnd: acts.examples.RandomNumbers,
     enableInteractions: bool = True,
+    enable_only_ionization: bool = False,  # added option to enable only ionization and disable other interactions
     pMin: Optional[float] = None,
     inputParticles: str = "particles_generated_selected",
     outputParticles: str = "particles_simulated",
@@ -526,10 +527,16 @@ def addFatras(
             trackingGeometry=trackingGeometry,
             magneticField=field,
             generateHitsOnSensitive=True,
-            emScattering=enableInteractions,
+            # # emScattering=enableInteractions,
+            # emScattering=False,  # disable multiple scattering for electrons and positrons
             emEnergyLossIonisation=enableInteractions,
-            emEnergyLossRadiation=enableInteractions,
-            emPhotonConversion=enableInteractions,
+            # # emEnergyLossRadiation=enableInteractions,
+            # emEnergyLossRadiation=False, # disable bremsstrahlung for electrons and positrons
+            # # emPhotonConversion=enableInteractions,
+            # emPhotonConversion=False,  # disable photon conversion for photons
+            emScattering=not enable_only_ionization,
+            emEnergyLossRadiation=not enable_only_ionization,
+            emPhotonConversion=not enable_only_ionization,
             pMin=pMin,
         )
     )

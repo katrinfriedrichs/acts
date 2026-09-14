@@ -156,6 +156,18 @@ parser.add_argument(
     action=argparse.BooleanOptionalAction,
 )
 
+### Added Argument for particle type selection
+
+parser.add_argument(
+    "--particle-type",
+    "-p",
+    help="Particle type",
+    type=str,
+    default="muon",
+    choices=["muon", "electron", "pion"],
+)  # pion = charged pion
+
+
 args = parser.parse_args()
 
 outputDir = args.output
@@ -193,7 +205,22 @@ s = acts.examples.Sequencer(
     skip=args.skip,
     numThreads=args.jobs if args.jobs is not None else (1 if args.geant4 else -1),
     outputDir=str(outputDir),
+    trackFpes=False,  # disable floating point exceptions in tracking algorithms, as they are not thread safe
 )
+
+### Added Section to set particle type based on user input
+if args.particle_type == "muon":
+    pdg_T = acts.PdgParticle.eMuon
+    parHypo = acts.ParticleHypothesis.muon
+elif args.particle_type == "electron":
+    pdg_T = acts.PdgParticle.eElectron
+    parHypo = acts.ParticleHypothesis.electron
+elif args.particle_type == "pion":
+    pdg_T = acts.PdgParticle.ePionPlus
+    parHypo = acts.ParticleHypothesis.pion
+else:
+    raise ValueError(f"Unknown particle type: {args.particle_type}")
+
 
 if args.edm4hep:
     import acts.examples.edm4hep
@@ -252,11 +279,11 @@ else:
                 args.gun_pt_range[1] * u.GeV,
                 transverse=True,
             ),
-            EtaConfig(args.gun_eta_range[0], args.gun_eta_range[1]),
+            EtaConfig(
+                args.gun_eta_range[0], args.gun_eta_range[1], True
+            ),  # True => uniform in eta
             PhiConfig(0.0, 360.0 * u.degree),
-            ParticleConfig(
-                args.gun_particles, acts.PdgParticle.eMuon, randomizeCharge=True
-            ),
+            ParticleConfig(args.gun_particles, pdg_T, randomizeCharge=True),
             vtxGen=acts.examples.GaussianVertexGenerator(
                 mean=acts.Vector4(0, 0, 0, 0),
                 stddev=acts.Vector4(
@@ -359,7 +386,7 @@ if args.reco:
         initialSigmaQoverPt=0.1 * u.e / u.GeV,
         initialSigmaPtRel=0.1,
         initialVarInflation=[1.0] * 6,
-        particleHypothesis=acts.ParticleHypothesis.muon,
+        particleHypothesis=parHypo,
         geoSelectionConfigFile=oddSeedingSel,
         outputDirRoot=outputDir if args.output_root else None,
         outputDirCsv=outputDir if args.output_csv else None,
